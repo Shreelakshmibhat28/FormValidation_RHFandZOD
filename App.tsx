@@ -1,50 +1,68 @@
-import React, { useState } from "react";
-import { View, TextInput, Text, Button } from "react-native";
+import React from "react";
+import { View, TextInput, Text, Button, ActivityIndicator } from "react-native";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const schema = z.object({
+  email: z.string().email({ message: "Invalid email address" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+});
+
+type FormFields = z.infer<typeof schema>;
 
 const App = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ email: string; password: string }>({
-    email: "",
-    password: "",
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<FormFields>({
+    defaultValues: { email: "test@gmail.com", password: "" },
+    resolver: zodResolver(schema),
   });
 
-  const handleSubmit = () => {
-    setErrors({ email: "", password: "" });
-
-    if (!email.includes("@")) {
-      setErrors((prevErrors) => ({ ...prevErrors, email: "Email must include @" }));
-      return;
+  const onSubmit = async (data: FormFields) => {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.log(data);
+    } catch (error) {
+      setError("email", { message: "This email is already taken" });
     }
-
-    if (password.length < 8) {
-      setErrors((prevErrors) => ({ ...prevErrors, password: "Password must be at least 8 chars" }));
-      return;
-    }
-
-    console.log("Form Submitted");
   };
 
   return (
-    <View style={{ padding: 50 }}>
-      <TextInput
-        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
+    <View style={{ padding: 40 }}>
+      <Controller
+        control={control}
+        name="email"
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
+            placeholder="Email"
+            value={value}
+            onChangeText={onChange}
+          />
+        )}
       />
-      {errors.email ? <Text style={{ color: "red" }}>{errors.email}</Text> : null}
+      {errors.email && <Text style={{ color: "red" }}>{errors.email.message}</Text>}
 
-      <TextInput
-        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
+      <Controller
+        control={control}
+        name="password"
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
+            placeholder="Password"
+            secureTextEntry
+            value={value}
+            onChangeText={onChange}
+          />
+        )}
       />
-      {errors.password ? <Text style={{ color: "red" }}>{errors.password}</Text> : null}
+      {errors.password && <Text style={{ color: "red" }}>{errors.password.message}</Text>}
 
-      <Button title="Submit" onPress={handleSubmit} />
+      <Button title={isSubmitting ? "Loading..." : "Submit"} onPress={handleSubmit(onSubmit)} disabled={isSubmitting} />
     </View>
   );
 };
